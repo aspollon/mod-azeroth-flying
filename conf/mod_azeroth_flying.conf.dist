@@ -1,0 +1,24 @@
+#
+# mod-azeroth-flying - optional flying mounts in Eastern Kingdoms and Kalimdor.
+#
+# Azeroth was not built for flying: expect clipping, stuck spots, skipped quest paths,
+# unintended shortcuts and PvP advantages. Use it at your own risk.
+#
+
+#    AzerothFlying.Enable
+#        Description: Mounts with a flying effect may fly in Eastern Kingdoms and Kalimdor.
+#                     Outland and Northrend keep their normal rules. Off by default.
+#        Default:     0 - Off
+#                     1 - On
+
+AzerothFlying.Enable = 0
+
+#    AzerothFlying.NoFlyAreas
+#        Description: Comma-separated area or zone ids where flying is not allowed. Entering
+#                     one of them while flying dismounts the player. Empty: no list, the
+#                     capitals can be flown too.
+#        Default:     "141,1519,1537,1657,3557,1637,1497,1638,3487" - Teldrassil,
+#                     Stormwind, Ironforge, Darnassus, the Exodar, Orgrimmar, Undercity,
+#                     Thunder Bluff, Silvermoon
+
+AzerothFlying.NoFlyAreas = "141,1519,1537,1657,3557,1637,1497,1638,3487"

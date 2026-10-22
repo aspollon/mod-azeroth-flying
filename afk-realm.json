@@ -1,0 +1,11 @@
+{
+  "about": "Read by AFK Realm (https://github.com/aspollon/AFK-Realm) when it builds the server. Without AFK Realm, apply the patch and build the server yourself: see README.md.",
+  "patches": [
+    {
+      "name": "Flying mounts in old Azeroth",
+      "target": "core",
+      "file": "patches/core-azeroth-flying.patch",
+      "why": "Lets mounts with a flying effect fly in Eastern Kingdoms and Kalimdor when AzerothFlying.Enable is on. The no-fly list and the existing area, battleground and instance checks still apply."
+    }
+  ]
+}
