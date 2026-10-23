@@ -53,8 +53,9 @@ The module is server-side only. Players do not need a client patch.
 
 ## Compatibility
 
-The module patches `src/server/coa/AscensionMountSpeed.cpp` and keeps the core's
+The module patches `AscensionMountSpeed.cpp`, `Unit.cpp` and `Unit.h` and keeps the core's
 `LearnedMountFlight` and `LearnedMountSpeed` scripts registered. It does not replace them.
-The patch is built for the CoA core after commit `954995279` (*no player can fly*): it
-turns flight back on for Eastern Kingdoms and Kalimdor only. If a future core changes that
-file, the patch may need an update.
+The patch is built for the CoA core after commit `954995279` (*no player can fly*): that core
+blocks flight in `Unit::SetCanFly` and in the player aura checks as well. The module turns
+flight back on for Eastern Kingdoms and Kalimdor only. If a future core changes those files,
+the patch may need an update.
