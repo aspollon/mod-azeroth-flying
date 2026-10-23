@@ -1,32 +1,22 @@
 ﻿diff --git a/src/server/coa/AscensionMountSpeed.cpp b/src/server/coa/AscensionMountSpeed.cpp
-index 33418b2..690f24e 100644
+index e8087b0..10502a1 100644
 --- a/src/server/coa/AscensionMountSpeed.cpp
 +++ b/src/server/coa/AscensionMountSpeed.cpp
-@@ -5,6 +5,7 @@
- #include "AreaDefines.h"
- #include "Battlefield.h"
- #include "BattlefieldMgr.h"
-+#include "Config.h"
- #include "DBCStores.h"
- #include "Player.h"
- #include "ScriptMgr.h"
-@@ -13,6 +14,9 @@
+@@ -15,6 +15,8 @@
  #include "SpellInfo.h"
  #include "SpellMgr.h"
- 
+ #include <atomic>
 +#include <cstdlib>
 +#include <string>
-+
+ #include <vector>
+ 
  namespace
- {
- constexpr uint32 ColdWeatherFlying = 54197;
-@@ -74,10 +78,55 @@ public:
+@@ -149,13 +151,42 @@ public:
  
  namespace AscensionMountSpeed
  {
--bool CanFly(Player*, SpellInfo const*)
 +bool IsNoFlyArea(Player* player)
- {
++{
 +    std::string const list = sConfigMgr->GetOption<std::string>("AzerothFlying.NoFlyAreas", "");
 +    if (list.empty())
 +        return false;
@@ -46,103 +36,22 @@ index 33418b2..690f24e 100644
 +        while (*at == ',' || *at == ' ' || *at == ';')
 +            ++at;
 +    }
-     return false;
- }
-+
-+bool PlayerFlightAllowed(Player* player)
-+{
-+    if (!player || !sConfigMgr->GetOption<bool>("AzerothFlying.Enable", false) || player->InBattleground())
-+        return false;
-+
-+    // The current CoA core disables player flight everywhere. This module only turns it back on in
-+    // Eastern Kingdoms and Kalimdor when AzerothFlying.Enable is on. Outland and Northrend stay
-+    // exactly as the core has them.
-+    uint32 const map = GetVirtualMapForMapAndZone(player->GetMapId(), player->GetZoneId());
-+    return (map == MAP_EASTERN_KINGDOMS || map == MAP_KALIMDOR) && !IsNoFlyArea(player);
++    return false;
 +}
 +
-+bool CanFly(Player* player, SpellInfo const* mount)
-+{
-+    if (!mount || player->GetBaseSkillValue(SKILL_RIDING) < RIDING_SKILL_EXPERT || !PlayerFlightAllowed(player))
-+        return false;
-+
-+    AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetAreaId());
-+    Battlefield* battlefield = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetZoneId());
-+    if ((area && (area->flags & AREA_FLAG_NO_FLY_ZONE)) || (battlefield && !battlefield->CanFlyIn()))
-+        return false;
-+
-+    return mount->CheckLocation(player->GetMapId(), player->GetZoneId(), player->GetAreaId(), player) ==
-+        SPELL_CAST_OK && player->canFlyInZone(player->GetMapId(), player->GetZoneId(), mount);
-+}
- }
- 
- void AddSC_AscensionMountSpeed()
-diff --git a/src/server/coa/AscensionMountSpeed.h b/src/server/coa/AscensionMountSpeed.h
-index 54a61fe..7a1b762 100644
---- a/src/server/coa/AscensionMountSpeed.h
-+++ b/src/server/coa/AscensionMountSpeed.h
-@@ -8,6 +8,8 @@ class SpellInfo;
- namespace AscensionMountSpeed
+ bool CanFly(Player* player, SpellInfo const* mount)
  {
- bool CanFly(Player* player, SpellInfo const* mount);
-+bool IsNoFlyArea(Player* player);
-+bool PlayerFlightAllowed(Player* player);
- }
+     if (!mount || player->GetBaseSkillValue(SKILL_RIDING) < RIDING_SKILL_EXPERT || player->InBattleground())
+         return false;
  
- #endif
-diff --git a/src/server/game/Entities/Unit/Unit.cpp b/src/server/game/Entities/Unit/Unit.cpp
-index 511890f..f3ae607 100644
---- a/src/server/game/Entities/Unit/Unit.cpp
-+++ b/src/server/game/Entities/Unit/Unit.cpp
-@@ -18,6 +18,7 @@
- #include "Unit.h"
- #include "AbstractFollower.h"
- #include "AreaDefines.h"
-+#include "AscensionMountSpeed.h"
- #include "ArenaSpectator.h"
- #include "Battlefield.h"
- #include "BattlefieldMgr.h"
-@@ -17834,7 +17835,7 @@ bool Unit::SetSwim(bool enable)
-  */
- void Unit::SetCanFly(bool enable)
- {
--    if (enable && IsPlayer() && !ToPlayer()->IsGameMaster())
-+    if (enable && IsPlayer() && !ToPlayer()->IsGameMaster() && !AscensionMountSpeed::PlayerFlightAllowed(ToPlayer()))
-         enable = false;
+     uint32 const map = GetVirtualMapForMapAndZone(player->GetMapId(), player->GetZoneId());
+-    if (map != MAP_OUTLAND && (map != MAP_NORTHREND || !player->HasSpell(ColdWeatherFlying)))
++    if (map == MAP_EASTERN_KINGDOMS || map == MAP_KALIMDOR)
++    {
++        if (!sConfigMgr->GetOption<bool>("AzerothFlying.Enable", false) || IsNoFlyArea(player))
++            return false;
++    }
++    else if (map != MAP_OUTLAND && (map != MAP_NORTHREND || !player->HasSpell(ColdWeatherFlying)))
+         return false;
  
-     bool isClientControlled = IsClientControlled();
-diff --git a/src/server/game/Entities/Unit/Unit.h b/src/server/game/Entities/Unit/Unit.h
-index 5c6ec98..5427fad 100644
---- a/src/server/game/Entities/Unit/Unit.h
-+++ b/src/server/game/Entities/Unit/Unit.h
-@@ -55,6 +55,12 @@ struct SpellValue;
- class AuraApplication;
- class Aura;
- class UnitAura;
-+class Player;
-+
-+namespace AscensionMountSpeed
-+{
-+bool PlayerFlightAllowed(Player* player);
-+}
- class AuraEffect;
- class Creature;
- class Spell;
-@@ -1834,7 +1840,7 @@ public:
-     [[nodiscard]] bool HasWaterWalkAura()           const { return HasAuraType(SPELL_AURA_WATER_WALK); };
-     [[nodiscard]] bool HasFeatherFallAura()         const { return HasAuraType(SPELL_AURA_FEATHER_FALL); };
-     [[nodiscard]] bool HasHoverAura()               const { return HasAuraType(SPELL_AURA_HOVER); };
--    [[nodiscard]] bool HasFlyAura()                 const { return !IsPlayer() && HasAuraType(SPELL_AURA_FLY); };
-+    [[nodiscard]] bool HasFlyAura()                 const { return (!IsPlayer() || AscensionMountSpeed::PlayerFlightAllowed(ToPlayer())) && HasAuraType(SPELL_AURA_FLY); };
-     [[nodiscard]] bool HasSpiritOfRedemptionAura()  const { return HasAuraType(SPELL_AURA_SPIRIT_OF_REDEMPTION); };
-     [[nodiscard]] bool HasPreventsFleeingAura()     const { return HasAuraType(SPELL_AURA_PREVENTS_FLEEING); };
-     [[nodiscard]] bool HasPreventDurabilityLossAura()  const { return HasAuraType(SPELL_AURA_PREVENT_DURABILITY_LOSS); };
-@@ -1861,7 +1867,7 @@ public:
-     [[nodiscard]] bool HasPacifyAura()              const { return HasAuraType(SPELL_AURA_MOD_PACIFY); }
-     [[nodiscard]] bool HasIgnoreTargetResistModifiersAura()  const { return HasAuraType(SPELL_AURA_MOD_IGNORE_TARGET_RESIST_MODIFIERS); }
-     [[nodiscard]] bool HasIncreaseMountedSpeedAura() const { return HasAuraType(SPELL_AURA_MOD_INCREASE_MOUNTED_SPEED); }
--    [[nodiscard]] bool HasIncreaseMountedFlightSpeedAura() const { return !IsPlayer() && HasAuraType(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED); }
-+    [[nodiscard]] bool HasIncreaseMountedFlightSpeedAura() const { return (!IsPlayer() || AscensionMountSpeed::PlayerFlightAllowed(ToPlayer())) && HasAuraType(SPELL_AURA_MOD_INCREASE_MOUNTED_FLIGHT_SPEED); }
- 
-     [[nodiscard]] bool HasAttackerSpellCritChanceAura() const { return HasAuraType(SPELL_AURA_MOD_ATTACKER_SPELL_CRIT_CHANCE); }
-     [[nodiscard]] bool HasUnattackableAura()        const { return HasAuraType(SPELL_AURA_MOD_UNATTACKABLE); }
+     AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetAreaId());

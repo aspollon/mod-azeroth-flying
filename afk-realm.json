@@ -5,7 +5,7 @@
       "name": "Flying mounts in old Azeroth",
       "target": "core",
       "file": "patches/core-azeroth-flying.patch",
-      "why": "Lets mounts with a flying effect fly in Eastern Kingdoms and Kalimdor when AzerothFlying.Enable is on. The no-fly list and the existing area, battleground and instance checks still apply."
+      "why": "Lets mounts with a flying effect fly in Eastern Kingdoms and Kalimdor when AzerothFlying.Enable is on. The no-fly list and the existing area, battleground and instance checks still apply. Leave CoA.LegacyMountFlight at 0: the module is built for the core's normal resolving rules."
     }
   ]
 }
