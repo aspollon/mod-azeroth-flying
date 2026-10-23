@@ -53,9 +53,12 @@ The module is server-side only. Players do not need a client patch.
 
 ## Compatibility
 
-The module patches `src/server/coa/AscensionMountSpeed.cpp` and keeps the core's
-`FlightConfiguration`, `MountFlight`, `MountFlightArea` and `LearnedMountSpeed` scripts registered.
-It does not replace them. It is built for the CoA core that has `CoA.LegacyMountFlight` (commit
+The module patches `src/server/coa/AscensionMountSpeed.cpp` and `.h`, and
+`src/server/game/Spells/SpellInfo.cpp`; it keeps the core's `FlightConfiguration`, `MountFlight`,
+`MountFlightArea` and `LearnedMountSpeed` scripts registered. It does not replace them. The
+`SpellInfo` change lets mounts whose spell is marked "flying areas only" (most store and
+achievement mounts) be summoned in the old world too. It is built for the CoA core that has
+`CoA.LegacyMountFlight` (commit
 `d28f234ce` and later): the option stays at `0`, because `1` restores older mounts' own flight rules
 and skips the module's no-fly dismount when an area changes. The module adds Eastern Kingdoms and
 Kalimdor on top of the core's Outland/Northrend rules, only when `AzerothFlying.Enable` is on.
