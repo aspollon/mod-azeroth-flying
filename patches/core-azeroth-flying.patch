@@ -1,15 +1,5 @@
-diff --git a/src/server/coa/AscensionMountSpeed.h b/src/server/coa/AscensionMountSpeed.h
---- a/src/server/coa/AscensionMountSpeed.h
-+++ b/src/server/coa/AscensionMountSpeed.h
-@@ -8,6 +8,7 @@
- namespace AscensionMountSpeed
- {
- bool CanFly(Player* player, SpellInfo const* mount);
-+bool IsNoFlyArea(Player* player);
- }
- 
- #endif
-diff --git a/src/server/coa/AscensionMountSpeed.cpp b/src/server/coa/AscensionMountSpeed.cpp
+﻿diff --git a/src/server/coa/AscensionMountSpeed.cpp b/src/server/coa/AscensionMountSpeed.cpp
+index 33418b2..75cc411 100644
 --- a/src/server/coa/AscensionMountSpeed.cpp
 +++ b/src/server/coa/AscensionMountSpeed.cpp
 @@ -5,6 +5,7 @@
@@ -20,22 +10,23 @@ diff --git a/src/server/coa/AscensionMountSpeed.cpp b/src/server/coa/AscensionMo
  #include "DBCStores.h"
  #include "Player.h"
  #include "ScriptMgr.h"
-@@ -12,6 +13,9 @@
- #include "SpellAuraEffects.h"
+@@ -13,6 +14,9 @@
  #include "SpellInfo.h"
  #include "SpellMgr.h"
-+
+ 
 +#include <cstdlib>
 +#include <string>
- 
++
  namespace
  {
-@@ -73,13 +77,42 @@
+ constexpr uint32 ColdWeatherFlying = 54197;
+@@ -74,10 +78,52 @@ public:
  
  namespace AscensionMountSpeed
  {
+-bool CanFly(Player*, SpellInfo const*)
 +bool IsNoFlyArea(Player* player)
-+{
+ {
 +    std::string const list = sConfigMgr->GetOption<std::string>("AzerothFlying.NoFlyAreas", "");
 +    if (list.empty())
 +        return false;
@@ -55,22 +46,43 @@ diff --git a/src/server/coa/AscensionMountSpeed.cpp b/src/server/coa/AscensionMo
 +        while (*at == ',' || *at == ' ' || *at == ';')
 +            ++at;
 +    }
-+    return false;
-+}
+     return false;
+ }
 +
- bool CanFly(Player* player, SpellInfo const* mount)
++bool CanFly(Player* player, SpellInfo const* mount)
++{
++    if (!mount || player->GetBaseSkillValue(SKILL_RIDING) < RIDING_SKILL_EXPERT || player->InBattleground())
++        return false;
++
++    // The current CoA core disables player flight everywhere. This module only turns it back on in
++    // Eastern Kingdoms and Kalimdor, and only when AzerothFlying.Enable is on. Outland and Northrend
++    // stay exactly as the core has them.
++    uint32 const map = GetVirtualMapForMapAndZone(player->GetMapId(), player->GetZoneId());
++    if (map != MAP_EASTERN_KINGDOMS && map != MAP_KALIMDOR)
++        return false;
++    if (!sConfigMgr->GetOption<bool>("AzerothFlying.Enable", false) || IsNoFlyArea(player))
++        return false;
++
++    AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetAreaId());
++    Battlefield* battlefield = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetZoneId());
++    if ((area && (area->flags & AREA_FLAG_NO_FLY_ZONE)) || (battlefield && !battlefield->CanFlyIn()))
++        return false;
++
++    return mount->CheckLocation(player->GetMapId(), player->GetZoneId(), player->GetAreaId(), player) ==
++        SPELL_CAST_OK && player->canFlyInZone(player->GetMapId(), player->GetZoneId(), mount);
++}
+ }
+ 
+ void AddSC_AscensionMountSpeed()
+diff --git a/src/server/coa/AscensionMountSpeed.h b/src/server/coa/AscensionMountSpeed.h
+index 54a61fe..ef6422a 100644
+--- a/src/server/coa/AscensionMountSpeed.h
++++ b/src/server/coa/AscensionMountSpeed.h
+@@ -8,6 +8,7 @@ class SpellInfo;
+ namespace AscensionMountSpeed
  {
-     if (!mount || player->GetBaseSkillValue(SKILL_RIDING) < RIDING_SKILL_EXPERT || player->InBattleground())
-         return false;
+ bool CanFly(Player* player, SpellInfo const* mount);
++bool IsNoFlyArea(Player* player);
+ }
  
-     uint32 const map = GetVirtualMapForMapAndZone(player->GetMapId(), player->GetZoneId());
--    if (map != MAP_OUTLAND && (map != MAP_NORTHREND || !player->HasSpell(ColdWeatherFlying)))
-+    if (map == MAP_EASTERN_KINGDOMS || map == MAP_KALIMDOR)
-+    {
-+        if (!sConfigMgr->GetOption<bool>("AzerothFlying.Enable", false) || IsNoFlyArea(player))
-+            return false;
-+    }
-+    else if (map != MAP_OUTLAND && (map != MAP_NORTHREND || !player->HasSpell(ColdWeatherFlying)))
-         return false;
- 
-     AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetAreaId());
+ #endif

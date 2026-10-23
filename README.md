@@ -9,7 +9,8 @@ Optional flying mounts in **Eastern Kingdoms** and **Kalimdor** for a CoA/AFK Re
 ## What it does
 
 - Lets mounts that already have a flying effect fly in Eastern Kingdoms and Kalimdor.
-- Leaves Outland and Northrend flying exactly as the core has it.
+- Leaves Outland and Northrend without flying, exactly as the current CoA core has them
+  (the core commit *no player can fly* disables flight there).
 - Keeps the riding-skill requirement and the Northrend Cold Weather Flying requirement.
 - Keeps battleground, instance, area-flag and battlefield restrictions.
 - Adds a configurable no-fly list for the old-world capitals (Stormwind, Ironforge,
@@ -54,4 +55,6 @@ The module is server-side only. Players do not need a client patch.
 
 The module patches `src/server/coa/AscensionMountSpeed.cpp` and keeps the core's
 `LearnedMountFlight` and `LearnedMountSpeed` scripts registered. It does not replace them.
-If a future CoA core changes that file, the patch may need an update.
+The patch is built for the CoA core after commit `954995279` (*no player can fly*): it
+turns flight back on for Eastern Kingdoms and Kalimdor only. If a future core changes that
+file, the patch may need an update.
