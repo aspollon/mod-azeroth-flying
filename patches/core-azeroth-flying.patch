@@ -1,4 +1,15 @@
-﻿diff --git a/src/server/coa/AscensionMountSpeed.cpp b/src/server/coa/AscensionMountSpeed.cpp
+diff --git a/src/server/coa/AscensionMountSpeed.h b/src/server/coa/AscensionMountSpeed.h
+--- a/src/server/coa/AscensionMountSpeed.h
++++ b/src/server/coa/AscensionMountSpeed.h
+@@ -5,6 +5,7 @@ class SpellInfo;
+ 
+ namespace AscensionMountSpeed
+ {
++bool IsNoFlyArea(Player* player);
+ bool CanFly(Player* player, SpellInfo const* mount);
+ }
+
+diff --git a/src/server/coa/AscensionMountSpeed.cpp b/src/server/coa/AscensionMountSpeed.cpp
 index e8087b0..10502a1 100644
 --- a/src/server/coa/AscensionMountSpeed.cpp
 +++ b/src/server/coa/AscensionMountSpeed.cpp
